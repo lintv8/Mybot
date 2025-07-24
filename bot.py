@@ -410,4 +410,4 @@ async def cancel_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             chat_id=ADMIN_ID,
             text=f"订单 #{order_id} 被用户取消~"
         )
-        await query.edit_message_text(f"订单 #{order_id}
+        await query.edit_message_text(f"订单 #{order_id}")  # 假设要拼接订单号并闭合字符串
