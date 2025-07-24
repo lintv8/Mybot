@@ -1,112 +1,84 @@
 import os
 import smtplib
 from email.mime.text import MIMEText
-from telegram import Update
+from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    ConversationHandler,
-    ContextTypes,
+    Application, CommandHandler, MessageHandler,
+    filters, ContextTypes, ConversationHandler
 )
-from dotenv import load_dotenv
 
-load_dotenv()
+# 状态定义
+EMAIL, PAYMENT = range(2)
 
-# Gmail 邮箱设置
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+# 读取发货内容
+def get_next_code():
+    with open("codes.txt", "r") as f:
+        codes = f.readlines()
+    if not codes:
+        return None
+    code = codes[0].strip()
+    with open("codes.txt", "w") as f:
+        f.writelines(codes[1:])
+    return code
 
-# Telegram Bot Token
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# 发邮件函数
+def send_email(to_email, code):
+    from_email = os.getenv("GMAIL_USER")
+    password = os.getenv("GMAIL_APP_PASSWORD")
 
-# 商品列表（示例）
-PRODUCTS = {
-    "product1": "https://downloadlink.com/file1.zip",
-    "product2": "ABC-DEF-1234-CODE",  # 兑换码
-}
-
-# 状态常量
-SELECT_PRODUCT, ENTER_EMAIL, WAIT_PAYMENT = range(3)
-
-# 订单临时缓存
-user_orders = {}
-
-# 发送邮件函数
-def send_email(to_email, subject, content):
-    msg = MIMEText(content, "plain", "utf-8")
-    msg["Subject"] = subject
-    msg["From"] = EMAIL_ADDRESS
+    msg = MIMEText(f"感谢购买，您的兑换码/下载链接为：\n\n{code}")
+    msg["Subject"] = "发货成功"
+    msg["From"] = from_email
     msg["To"] = to_email
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_ADDRESS, to_email, msg.as_string())
+        server.login(from_email, password)
+        server.send_message(msg)
 
-# /start 指令
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = "欢迎选购，请输入你要购买的产品编号：\n"
-    for k in PRODUCTS:
-        text += f"- {k}\n"
-    await update.message.reply_text(text)
-    return SELECT_PRODUCT
-
-# 用户输入商品编号
-async def select_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    product = update.message.text.strip()
-    if product not in PRODUCTS:
-        await update.message.reply_text("产品不存在，请重新输入。")
-        return SELECT_PRODUCT
-    context.user_data["product"] = product
-    await update.message.reply_text("请输入你的邮箱地址：")
-    return ENTER_EMAIL
+# 开始下单
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("欢迎购买，请输入您的邮箱：")
+    return EMAIL
 
 # 用户输入邮箱
-async def enter_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    email = update.message.text.strip()
-    context.user_data["email"] = email
-    await update.message.reply_text(
-        f"请付款后回复「已付款」，我们将把产品发送到 {email}\n（提示：目前不接入支付，仅手动确认）"
-    )
-    return WAIT_PAYMENT
+async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["email"] = update.message.text
+    await update.message.reply_text("请完成付款后，输入 /paid 命令通知我发货。")
+    return PAYMENT
 
-# 用户手动确认付款
-async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    email = context.user_data["email"]
-    product_key = context.user_data["product"]
-    content = PRODUCTS[product_key]
-
-    try:
-        send_email(
-            email,
-            "感谢购买 - 虚拟产品已发送",
-            f"你购买的商品（{product_key}）如下：\n\n{content}",
-        )
-        await update.message.reply_text("已成功发送邮件，请查收（如未收到请查垃圾箱）。")
-    except Exception as e:
-        await update.message.reply_text("发送邮件失败，请联系管理员。\n错误信息：" + str(e))
-
+# 用户付款完成
+async def paid(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    email = context.user_data.get("email")
+    code = get_next_code()
+    if not code:
+        await update.message.reply_text("库存已空，请联系管理员。")
+        return ConversationHandler.END
+    send_email(email, code)
+    await update.message.reply_text(f"已发送至邮箱 {email}，感谢购买！")
     return ConversationHandler.END
 
-# /cancel
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("订单已取消。")
+# 取消操作
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("已取消订单。", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 # 主函数
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+def main():
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    application = Application.builder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            SELECT_PRODUCT: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_product)],
-            ENTER_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, enter_email)],
-            WAIT_PAYMENT: [MessageHandler(filters.Regex("已付款"), confirm_payment)],
+            EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
+            PAYMENT: [CommandHandler("paid", paid)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    app.add_handler(conv_handler)
-    app.run_polling()
+    application.add_handler(conv_handler)
+    print("Bot started...")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
