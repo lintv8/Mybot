@@ -2,7 +2,7 @@ import os
 from telegram.ext import ApplicationBuilder, CommandHandler
 
 # 从环境变量读取 TG_BOT_TOKEN（后续在 Railway 配置）
-TOKEN = os.getenv("TG_BOT_TOKEN")  
+TOKEN = os.getenv("TG_BOT_TOKEN") 
 
 # 初始化机器人
 app = ApplicationBuilder().token(TOKEN).build()  
