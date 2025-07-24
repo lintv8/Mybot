@@ -1,3 +1,5 @@
+from telegram import Update
+from telegram.ext import ContextTypes
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 async def cancel_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
