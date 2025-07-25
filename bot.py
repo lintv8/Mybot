@@ -10,15 +10,13 @@ from telegram.ext import (
 # 状态定义
 EMAIL, PAYMENT = range(2)
 
-# 读取发货内容
+# 模拟从环境变量读取兑换码
+CODES = os.getenv("PRODUCT_CODES", "").split(",")
+
 def get_next_code():
-    with open("codes.txt", "r") as f:
-        codes = f.readlines()
-    if not codes:
+    if not CODES:
         return None
-    code = codes[0].strip()
-    with open("codes.txt", "w") as f:
-        f.writelines(codes[1:])
+    code = CODES.pop(0)
     return code
 
 # 发邮件函数
@@ -82,3 +80,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
