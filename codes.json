@@ -1,7 +1,4 @@
 {
-  "product_b": [
-    "INVITE-1234-AAAA",
-    "INVITE-5678-BBBB",
-    "INVITE-9101-CCCC"
-  ]
+    "code1": "discount1",
+    "code2": "discount2"
 }
