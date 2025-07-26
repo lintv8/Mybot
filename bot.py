@@ -1,13 +1,12 @@
-from telegram.ext import Updater
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import config
 
 def main() -> None:
     updater = Updater(config.TOKEN)
     dispatcher = updater.dispatcher
 
-    from handlers import start, button
-    dispatcher.add_handler(config.start_handler)
-    dispatcher.add_handler(config.button_handler)
+    dispatcher.add_handler(CommandHandler("start", config.start))
+    dispatcher.add_handler(CallbackQueryHandler(config.button))
 
     updater.start_polling()
     updater.idle()
