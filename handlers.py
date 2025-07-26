@@ -15,8 +15,10 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    if query is None:
+        return
     query.answer()
     selected_product = query.data
-    product_link = PRODUCTS[selected_product]
+    product_link = PRODUCTS.get(selected_product, "Product not found")
     query.edit_message_text(text=f"Here is your link:
 {product_link}")
