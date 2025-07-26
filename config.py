@@ -1,6 +1,10 @@
-# config.py
+from telegram.ext import CommandHandler, CallbackQueryHandler
+import os
+from dotenv import load_dotenv
 
-SMTP_EMAIL = "your@gmail.com"
-SMTP_PASSWORD = "your_app_password"  # Gmail“应用专用密码”
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+load_dotenv()
+TOKEN = os.getenv('TOKEN')
+
+from handlers import start, button
+start_handler = CommandHandler("start", start)
+button_handler = CallbackQueryHandler(button)
