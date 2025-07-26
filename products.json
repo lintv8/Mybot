@@ -1,15 +1,4 @@
 {
-  "product_a": {
-    "name": "AI插画素材包",
-    "description": "包含100张高清AI插画",
-    "type": "fixed",
-    "content": "https://yourstore.com/download/ai_pack.zip",
-    "price": 4.99
-  },
-  "product_b": {
-    "name": "ChatGPT邀请码",
-    "description": "每人一个唯一邀请码",
-    "type": "code",
-    "price": 9.99
-  }
+    "Product 1": "https://example.com/product1",
+    "Product 2": "https://example.com/product2"
 }
