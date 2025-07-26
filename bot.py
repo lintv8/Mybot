@@ -2,7 +2,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import config
 
 def main() -> None:
-    updater = Updater(config.TOKEN)
+    updater = Updater(token=config.TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", config.start))
