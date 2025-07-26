@@ -1,4 +1,5 @@
 import os
+from telegram.ext import CommandHandler, CallbackQueryHandler
 
 # Ensure the environment variable is set
 TOKEN = os.getenv('TOKEN')
